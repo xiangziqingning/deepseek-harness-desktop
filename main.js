@@ -67,21 +67,34 @@ function buildMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }
 
+const LOADING_PAGE = 'data:text/html;charset=utf-8,' + encodeURIComponent(
+  '<!doctype html><html><head><meta charset="utf-8"><style>' +
+  'html,body{margin:0;height:100%}body{display:flex;align-items:center;justify-content:center;background:#0b1220;color:#cfe0ff;font-family:-apple-system,"Microsoft YaHei",sans-serif}' +
+  '.wrap{text-align:center}.spin{width:56px;height:56px;margin:0 auto 24px;border:4px solid rgba(77,141,255,.2);border-top-color:#4D8DFF;border-radius:50%;animation:spin 1s linear infinite}' +
+  'h1{font-size:18px;font-weight:600;margin:0}.p{margin-top:10px;font-size:13px;color:#8aa3c8}.bar{width:260px;height:6px;margin:22px auto 0;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden}' +
+  '.fill{width:0;height:100%;background:linear-gradient(90deg,#4D8DFF,#7B5CFF);border-radius:999px;animation:load 2.4s ease-in-out infinite}' +
+  '@keyframes spin{to{transform:rotate(360deg)}}@keyframes load{0%{width:8%}50%{width:70%}100%{width:8%}}' +
+  '</style></head><body><div class="wrap"><div class="spin"></div>' +
+  '<h1>正在启动 DeepSeek Harness…</h1><p class="p">首次启动需初始化本地运行时，稍稍等待</p>' +
+  '<div class="bar"><div class="fill"></div></div></div></body></html>'
+);
+
 app.whenReady().then(async () => {
-  const ok = startServer();
   win = createWindow();
+  win.loadURL(LOADING_PAGE);   // 立即显示加载页，避免空白“卡住”
   buildMenu();
   updater.register();
   updater.startAutoCheck(win);   // 后台自更新：发现新版弹窗询问
+  const ok = startServer();
   if (ok) {
-    const up = await waitFor(PORT);
+    const up = await waitFor(PORT, 90000);
     if (up) {
       win.loadURL('http://127.0.0.1:' + PORT);
     } else {
-      win.loadDataURL('<html><body style="font-family:sans-serif"><h2>DeepSeek Harness 未能启动</h2><p>请重试。端口 ' + PORT + ' 未就绪。</p></body></html>');
+      win.loadDataURL('<html><body style="font-family:sans-serif;padding:40px"><h2>DeepSeek Harness 未能启动</h2><p>端口 ' + PORT + ' 未就绪。请重启软件再试。</p></body></html>');
     }
   } else {
-    win.loadDataURL('<html><body style="font-family:sans-serif"><h2>缺少运行组件</h2><p>未找到打包的 dsh。</p></body></html>');
+    win.loadDataURL('<html><body style="font-family:sans-serif;padding:40px"><h2>缺少运行组件</h2><p>未找到打包的 dsh。</p></body></html>');
   }
   app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
